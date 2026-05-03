@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Personal Diary</title>
+    <!-- FullCalendar & CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 20px; }
+        #calendar-container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 10% auto; padding: 20px; width: 400px; border-radius: 8px; }
+        input, textarea { width: 100%; margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="calendar-container">
+    <h2 style="text-align:center">📔 My Digital Journal</h2>
+    <div id="calendar"></div>
+</div>
+
+<!-- Simple Entry Modal -->
+<div id="entryModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalDate"></h3>
+        <input type="text" id="entryTitle" placeholder="Entry Title">
+        <textarea id="entryContent" rows="5" placeholder="How was your day?"></textarea>
+        <button onclick="saveEntry()">Save</button>
+        <button onclick="closeModal()" style="background:#6c757d">Cancel</button>
+    </div>
+</div>
+
+<script>
+    let selectedDate = null;
+    const modal = document.getElementById('entryModal');
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            events: '/api/entries',
+            dateClick: function(info) {
+                selectedDate = info.dateStr;
+                document.getElementById('modalDate').innerText = "Journal for " + selectedDate;
+                document.getElementById('entryTitle').value = "";
+                document.getElementById('entryContent').value = "";
+                modal.style.display = "block";
+            },
+            eventClick: function(info) {
+                alert("Saved Title: " + info.event.title + "\n\nContent: " + info.event.extendedProps.content);
+            }
+        });
+        calendar.render();
+        window.calendar = calendar;
+    });
+
+    function closeModal() { modal.style.display = "none"; }
+
+    function saveEntry() {
+        const title = document.getElementById('entryTitle').value;
+        const content = document.getElementById('entryContent').value;
+
+        fetch('/api/save', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({date: selectedDate, title: title, content: content})
+        }).then(res => res.json()).then(data => {
+            if(data.status === "success") {
+                window.calendar.refetchEvents();
+                closeModal();
+            }
+        });
+    }
+</script>
+</body>
+</html>
